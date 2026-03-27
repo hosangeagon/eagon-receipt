@@ -1,7 +1,7 @@
 {
   "name": "입금표 작성기 – 이건산업",
   "short_name": "입금표",
-  "start_url": "./입금표_자동작성.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#dde3ed",
   "theme_color": "#1a3562",

@@ -1,7 +1,7 @@
-const CACHE = 'igum-v6';
+const CACHE = 'igum-v7';
 const STATIC = [
   './manifest.json',
-  './icon.svg',
+  './icon-192.png',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
 ];
 
