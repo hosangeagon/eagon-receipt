@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>입금표 작성기 – 이건산업 (v6)</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a3562">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="입금표">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+            background: #dde3ed;
+            padding: 20px;
+        }
+
+        /* ── 입력 패널 ── */
+        #inputPanel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 24px;
+            max-width: 860px;
+            margin: 0 auto 28px;
+            box-shadow: 0 3px 10px rgba(0,0,0,.12);
+        }
+
+        #inputPanel h2 {
+            font-size: 17px;
+            color: #1a3562;
+            border-bottom: 2px solid #1a3562;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 11px;
+            flex-wrap: wrap;
+        }
+
+        .field-row label {
+            width: 115px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .field-row input,
+        .field-row select {
+            padding: 6px 10px;
+            border: 1px solid #c0c8d8;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .field-row input:focus,
+        .field-row select:focus { border-color: #2563eb; }
+
+        .amt-preview {
+            font-size: 13px;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+
+        /* 내역 테이블 */
+        .sec-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a3562;
+            margin: 18px 0 8px;
+            border-left: 3px solid #2563eb;
+            padding-left: 7px;
+        }
+
+        .items-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .items-tbl th {
+            background: #eef2fb;
+            border: 1px solid #c0c8d8;
+            padding: 5px 6px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .items-tbl td {
+            border: 1px solid #d8dde8;
+            padding: 3px 4px;
+        }
+
+        .items-tbl input,
+        .items-tbl select {
+            width: 100%;
+            border: none;
+            padding: 3px 4px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            background: transparent;
+        }
+
+        .btn-add {
+            margin-top: 8px;
+            padding: 5px 14px;
+            background: #f0f4fc;
+            border: 1px dashed #2563eb;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #2563eb;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .btn-del {
+            padding: 2px 8px;
+            background: #fde8e8;
+            border: 1px solid #fba0a0;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #c92a2a;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        /* 실행 버튼 */
+        .actions { display: flex; gap: 10px; margin-top: 22px; }
+
+        .btn {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: filter .15s;
+        }
+
+        .btn:hover { filter: brightness(.9); }
+        .btn-gen  { background: #2563eb; color: #fff; }
+        .btn-prnt { background: #16a34a; color: #fff; }
+        .btn-rst  { background: #6b7280; color: #fff; }
+
+        /* ── 입금표 출력 영역 ── */
+        .rcp-wrapper {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .rcp-page {
+            background: #fff;
+            padding: 12px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
+        }
+
+        /* ── 입금표 폼 ── */
+        .rcp {
+            border: 2px solid #000;
+            padding: 10px 12px;
+            font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+        }
+
+        .rcp table { border-collapse: collapse; width: 100%; }
+        .rcp td, .rcp th {
+            border: 1px solid #000;
+            padding: 2px 5px;
+            font-size: 11px;
+        }
+
+        .rcp .title-bar {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .rcp .title-copy { font-size: 10px; }
+        .rcp .title-main {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 14px;
+        }
+        .rcp .title-label { font-size: 10px; color: #444; }
+
+        .rcp .no-row {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        /* ── 이미지 저장 버튼 ── */
+        .save-all-bar {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .btn-save-all {
+            padding: 12px 36px;
+            background: #f59e0b;
+            color: #1a1100;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: filter .15s;
+            box-shadow: 0 2px 6px rgba(245,158,11,.35);
+        }
+        .btn-save-all:hover { filter: brightness(.92); }
+
+        .rcp-wrap { margin-bottom: 20px; }
+
+        .btn-img-save {
+            display: block;
+            width: 100%;
+            margin-top: 7px;
+            padding: 9px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            transition: filter .15s;
+        }
+        .btn-img-save:hover { filter: brightness(.9); }
+        .btn-img-save:active { filter: brightness(.8); }
+
+        /* ── 이력 패널 ── */
+        #historyPanel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 860px;
+            margin: 0 auto 28px;
+            box-shadow: 0 3px 10px rgba(0,0,0,.12);
+            display: none;
+        }
+
+        #historyPanel h3 {
+            font-size: 15px;
+            color: #1a3562;
+            border-bottom: 2px solid #1a3562;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hist-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .hist-tbl th {
+            background: #eef2fb;
+            border: 1px solid #c0c8d8;
+            padding: 6px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .hist-tbl td {
+            border: 1px solid #e2e8f0;
+            padding: 5px 8px;
+            vertical-align: middle;
+        }
+
+        .hist-tbl tbody tr:hover td { background: #f8faff; }
+
+        .btn-reload {
+            padding: 3px 9px;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #1d4ed8;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .btn-del-hist {
+            padding: 3px 9px;
+            background: #fde8e8;
+            border: 1px solid #fba0a0;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #c92a2a;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .btn-hist-clear {
+            padding: 4px 12px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        .btn-hist { background: #7c3aed; color: #fff; }
+
+        /* ── 수정 버튼 & 뱃지 ── */
+        .btn-edit-hist {
+            padding: 3px 9px;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #92400e;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .badge-modified {
+            display: inline-block;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            border-radius: 10px;
+            font-size: 10px;
+            padding: 1px 7px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .hist-tbl tbody tr.row-modified td { background: #fffbeb; }
+        .hist-tbl tbody tr.row-modified:hover td { background: #fef9e0; }
+
+        /* ── 수정 모달 ── */
+        #editModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        #editModalBox {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px;
+            max-width: 740px;
+            margin: 40px auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,.25);
+        }
+
+        #editModalBox h3 {
+            font-size: 16px;
+            color: #1a3562;
+            border-bottom: 2px solid #1a3562;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+        }
+
+        .em-field-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .em-field-row label {
+            width: 90px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .em-field-row input,
+        .em-field-row select {
+            padding: 6px 10px;
+            border: 1px solid #c0c8d8;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .em-field-row input:focus,
+        .em-field-row select:focus { border-color: #2563eb; }
+
+        .btn-save-edit {
+            padding: 9px 24px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-cancel-edit {
+            padding: 9px 24px;
+            background: #6b7280;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* ── 클라우드 동기화 ── */
+        .btn-cloud {
+            padding: 4px 11px;
+            background: #e0f2fe;
+            border: 1px solid #7dd3fc;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #0369a1;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .btn-disconnect {
+            padding: 9px 20px;
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        #cloudModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        #cloudModalBox {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px;
+            max-width: 520px;
+            margin: 60px auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,.25);
+        }
+
+        #cloudModalBox h3 {
+            font-size: 16px;
+            color: #1a3562;
+            border-bottom: 2px solid #1a3562;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+
+        /* ── 모바일 대응 ── */
+        .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+
+            /* 입금표 출력 - 가로 스크롤로 찌그러짐 방지 */
+            .rcp-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .rcp { min-width: 460px; }
+
+            #inputPanel { padding: 14px; }
+
+            .field-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+                margin-bottom: 14px;
+            }
+            .field-row label { width: auto; font-size: 12px; color: #555; }
+            .field-row input,
+            .field-row select { width: 100% !important; font-size: 15px; padding: 9px 10px; }
+            .amt-preview { font-size: 12px; }
+
+            .actions { flex-wrap: wrap; gap: 8px; }
+            .actions .btn { flex: 1 1 40%; padding: 13px 8px; font-size: 13px; }
+
+            #historyPanel { padding: 14px; }
+            #historyPanel h3 {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .btn-reload, .btn-del-hist, .btn-edit-hist {
+                padding: 7px 11px;
+                font-size: 12px;
+            }
+
+            .rcp-wrapper { padding: 0; }
+
+            #editModalBox { padding: 16px; margin: 10px; }
+            .em-field-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            .em-field-row label { width: auto; font-size: 12px; color: #555; }
+            .em-field-row input,
+            .em-field-row select { width: 100% !important; font-size: 15px; padding: 9px 10px; }
+
+            #cloudModalBox { padding: 16px; margin: 10px; }
+
+            /* 내역 입력 테이블 → 카드형 변환 */
+            .items-tbl thead { display: none; }
+            .items-tbl tbody, .items-tbl tr { display: block; }
+            .items-tbl tr {
+                border: 1px solid #c0c8d8;
+                border-radius: 8px;
+                padding: 10px 12px;
+                margin-bottom: 10px;
+                background: #fafbff;
+            }
+            .items-tbl td {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border: none !important;
+                padding: 4px 0;
+            }
+            .items-tbl td::before {
+                font-size: 11px;
+                font-weight: 700;
+                color: #555;
+                min-width: 54px;
+                flex-shrink: 0;
+            }
+            .items-tbl td:nth-child(1)::before { content: '구분'; }
+            .items-tbl td:nth-child(2)::before { content: '금액'; }
+            .items-tbl td:nth-child(3)::before { content: '만기일'; }
+            .items-tbl td:nth-child(4)::before { content: '발행인'; }
+            .items-tbl td:nth-child(5)::before { content: '지급은행'; }
+            .items-tbl td:nth-child(6)::before { content: '어음번호'; }
+            .items-tbl td:nth-child(7) { justify-content: flex-end; padding-top: 6px; }
+            .items-tbl td:nth-child(7)::before { content: none; min-width: 0; }
+            .items-tbl input, .items-tbl select {
+                flex: 1;
+                font-size: 15px !important;
+                padding: 8px 10px !important;
+                border: 1px solid #c0c8d8 !important;
+                border-radius: 5px !important;
+                background: #fff !important;
+                width: auto !important;
+            }
+        }
+
+        /* ── 업체 자동완성 드롭다운 ── */
+        #vendorDropdown {
+            display: none;
+            position: fixed;       /* 키보드 위에 뜨도록 fixed */
+            min-width: 200px;
+            max-height: 240px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: #fff;
+            border: 1px solid #c0c8d8;
+            border-radius: 6px;
+            z-index: 9999;
+            box-shadow: 0 4px 16px rgba(0,0,0,.25);
+        }
+        #vendorDropdown .vd-item {
+            padding: 11px 13px;
+            font-size: 14px;
+            color: #222;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        #vendorDropdown .vd-item:last-child { border-bottom: none; }
+        #vendorDropdown .vd-item:active     { background: #eef2fb; }
+        #vendorDropdown .vd-none {
+            padding: 10px 13px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        @media (max-width: 640px) {
+            #vd-wrap { display: block !important; width: 100%; }
+            #vd-wrap input { width: 100% !important; }
+        }
+
+        /* ── 서명 패드 모달 ── */
+        #signModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        #signModalBox {
+            background: #fff;
+            border-radius: 12px;
+            padding: 22px;
+            max-width: 420px;
+            margin: 80px auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,.25);
+        }
+        #signCanvas {
+            border: 1.5px solid #c0c8d8;
+            border-radius: 6px;
+            cursor: crosshair;
+            display: block;
+            width: 100%;
+            background: #fafafa;
+            touch-action: none;
+        }
+        .sign-btns { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+        .sign-btns button {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            flex: 1;
+        }
+        @media (max-width: 640px) {
+            #signModalBox {
+                margin: 0;
+                border-radius: 16px 16px 0 0;
+                padding: 18px 16px;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                max-width: 100%;
+                box-shadow: 0 -4px 24px rgba(0,0,0,.2);
+            }
+            .sign-btns button { padding: 14px 10px; font-size: 15px; }
+        }
+
+        /* ── 입금표 그룹 헤더 ── */
+        .rcp-group { margin-bottom: 12px; }
+        .rcp-group-header {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a3562;
+            background: #eef2fb;
+            padding: 9px 16px;
+            border-radius: 6px;
+            margin: 14px 0 6px;
+            border-left: 5px solid #2563eb;
+            max-width: 780px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .rcp-group-header.loaded { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+        .rcp-group-header.generated { border-color: #2563eb; background: #eef2fb; color: #1e40af; }
+        .rcp-group-divider {
+            max-width: 780px;
+            margin: 18px auto;
+            border: none;
+            border-top: 2px dashed #c0c8d8;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════ 입력 패널 ═══════════════════ -->
+<div id="inputPanel">
+    <h2>📋 입금표 작성기 – 이건산업주식회사</h2>
+
+    <div class="field-row">
+        <label>문서번호 (NO.)</label>
+        <input id="docNo" type="text" autocomplete="off" style="width:150px;background:#eef6ff;font-weight:700;letter-spacing:1px" onfocus="initDocNo()" title="클릭하면 번호 자동 재계산">
+        <span style="font-size:11px;color:#6b7280">자동 채번 · 직접 수정 가능</span>
+        <button onclick="resetSeq()"
+            style="font-size:11px;padding:3px 9px;border:1px solid #d1d5db;border-radius:4px;
+                   background:#fff;cursor:pointer;color:#6b7280;font-family:inherit">
+            번호 초기화
+        </button>
+    </div>
+
+    <div class="field-row">
+        <label>수신 거래처</label>
+        <div id="vd-wrap" style="position:relative;display:inline-block">
+            <input id="toName" type="text" placeholder="업체 선택 또는 직접 입력"
+                   style="width:260px" autocomplete="off"
+                   oninput="vdFilter()" onfocus="vdShow()" onblur="vdHide()">
+            <div id="vendorDropdown"></div>
+        </div>
+        <span style="font-size:11px;color:#6b7280">목록 선택 또는 직접 입력 가능</span>
+    </div>
+
+    <div class="field-row">
+        <label>날짜</label>
+        <input id="rcpDate" type="date" style="width:160px">
+    </div>
+
+    <div class="field-row">
+        <label>합계 금액 (원)</label>
+        <input id="totalAmt" type="text" inputmode="numeric" readonly oninput="fmtInput(this); previewAmt()"
+               style="width:180px;background:#eef6ff;font-weight:700;cursor:default">
+        <span id="totalAmtHint" style="font-size:11px;color:#6b7280">내역 합계 자동계산</span>
+        <span class="amt-preview" id="amtPreview"></span>
+    </div>
+
+    <div class="field-row">
+        <label>담당부서</label>
+        <input id="dept" type="text" placeholder="담당부서명" style="width:200px">
+    </div>
+
+    <div class="field-row">
+        <label>담당자</label>
+        <input id="manager" type="text" autocomplete="off" placeholder="담당자 이름" style="width:200px" oninput="initDocNo()">
+    </div>
+
+    <div class="field-row">
+        <label>비고</label>
+        <input id="note" type="text" placeholder="내역 아래에 표시 (예: 상계)" style="width:200px" oninput="noteChanged()">
+        <button onclick="document.getElementById('note').value='상계'; noteChanged();"
+            style="padding:5px 14px;border:1px solid #c0c8d8;border-radius:5px;
+                   background:#fef9ec;cursor:pointer;font-size:13px;font-weight:700;
+                   font-family:inherit;color:#92400e;">상계</button>
+    </div>
+
+    <div class="field-row" style="align-items:flex-start">
+        <label style="padding-top:4px">특이사항</label>
+        <textarea id="specialNote" placeholder="입금표 하단 비고란에 표시됩니다&#10;(예: 선수금, 분할 입금 등)"
+            style="width:280px;height:58px;padding:6px 10px;border:1px solid #c0c8d8;
+                   border-radius:5px;font-family:inherit;font-size:13px;
+                   resize:vertical;outline:none;line-height:1.5"
+            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#c0c8d8'"></textarea>
+    </div>
+
+
+    <p class="sec-title">내역 입력 (어음·현금·수표 등)</p>
+
+    <div class="tbl-scroll">
+    <table class="items-tbl">
+        <thead>
+            <tr>
+                <th style="width:65px">구분</th>
+                <th style="width:105px">금액 (원)</th>
+                <th style="width:108px">만기일</th>
+                <th style="width:80px">발행인</th>
+                <th style="width:88px">지급은행</th>
+                <th style="width:108px">어음번호</th>
+                <th style="width:36px"></th>
+            </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+    </table>
+    </div>
+    <button class="btn-add" onclick="addRow()">＋ 행 추가</button>
+
+    <div class="actions">
+        <button class="btn btn-gen"  onclick="generate()">입금표 생성 (3매)</button>
+        <button class="btn btn-rst"  onclick="resetForm()">초기화</button>
+        <button class="btn btn-hist" onclick="toggleHistory()">📋 이력 보기</button>
+    </div>
+</div>
+
+<!-- ═══════════════════ 이력 패널 ═══════════════════ -->
+<div id="historyPanel">
+    <h3>
+        <span>📋 입금표 이력 &nbsp;<span id="syncStatus" style="font-size:12px;font-weight:400"></span></span>
+        <span style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+            <button class="btn-cloud" onclick="manualSync()">🔄 동기화</button>
+            <button class="btn-cloud" onclick="openCloudModal()">☁️ 클라우드 설정</button>
+            <button class="btn-hist-clear" onclick="clearAllHistory()">전체 삭제</button>
+        </span>
+    </h3>
+    <div class="tbl-scroll">
+    <table class="hist-tbl">
+        <thead>
+            <tr>
+                <th>NO.</th>
+                <th>거래처</th>
+                <th>날짜</th>
+                <th>금액 (원)</th>
+                <th>비고</th>
+                <th>담당자</th>
+                <th>저장일시</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="histBody">
+            <tr><td colspan="8" style="text-align:center;padding:20px;color:#aaa">저장된 이력이 없습니다</td></tr>
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- ═══════════════════ 클라우드 설정 모달 ═══════════════════ -->
+<div id="cloudModal" onclick="if(event.target===this)closeCloudModal()">
+    <div id="cloudModalBox">
+        <h3>☁️ JSONBin 클라우드 동기화 설정</h3>
+
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;
+                    padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:2;color:#0369a1">
+            <strong>📌 설정 방법</strong><br>
+            ① <a href="https://jsonbin.io" target="_blank" style="color:#0369a1">jsonbin.io</a>에서 무료 회원가입<br>
+            ② <strong>API Keys</strong> 메뉴에서 <strong>Master Key</strong> 복사 후 아래 입력<br>
+            ③ <strong>새 Bin 생성</strong> 버튼 → Bin ID 자동 발급<br>
+            ④ 다른 기기에서 <strong>같은 API Key + Bin ID</strong> 입력 시 이력 공유
+        </div>
+
+        <div class="em-field-row">
+            <label>API Key</label>
+            <input id="cloud-apikey" type="password"
+                   style="width:260px;font-family:monospace;font-size:12px"
+                   placeholder="$2a$10$...">
+        </div>
+
+        <div class="em-field-row">
+            <label>Bin ID</label>
+            <input id="cloud-binid" type="text"
+                   style="width:180px;font-family:monospace;font-size:13px"
+                   placeholder="64abc...">
+            <button class="btn-cloud" onclick="createNewBin()">🆕 새 Bin 생성</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap">
+            <button class="btn-cancel-edit" onclick="closeCloudModal()">취소</button>
+            <button class="btn-disconnect"  onclick="disconnectCloud()">연결 해제</button>
+            <button class="btn-save-edit"   onclick="saveCloudSettings()">저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ 수정 모달 ═══════════════════ -->
+<div id="editModal" onclick="if(event.target===this)closeEditModal()">
+    <div id="editModalBox">
+        <h3>✏️ 이력 수정</h3>
+
+        <div class="em-field-row">
+            <label>문서번호</label>
+            <input id="em-docno" type="text" style="width:140px">
+        </div>
+        <div class="em-field-row">
+            <label>거래처</label>
+            <input id="em-toname" type="text" style="width:220px">
+        </div>
+        <div class="em-field-row">
+            <label>날짜</label>
+            <input id="em-date" type="date" style="width:160px">
+        </div>
+        <div class="em-field-row">
+            <label>담당부서</label>
+            <input id="em-dept" type="text" style="width:200px">
+        </div>
+        <div class="em-field-row">
+            <label>담당자</label>
+            <input id="em-manager" type="text" style="width:200px">
+        </div>
+        <div class="em-field-row">
+            <label>비고</label>
+            <input id="em-note" type="text" style="width:200px" oninput="emNoteChanged()">
+        </div>
+        <div class="em-field-row" style="align-items:flex-start">
+            <label style="padding-top:4px">특이사항</label>
+            <textarea id="em-specialNote" placeholder="입금표 하단 비고란"
+                style="width:250px;height:54px;padding:6px 10px;border:1px solid #c0c8d8;
+                       border-radius:5px;font-family:inherit;font-size:13px;
+                       resize:vertical;outline:none"></textarea>
+        </div>
+        <div class="em-field-row">
+            <label>합계금액</label>
+            <input id="em-totalamt" type="text" inputmode="numeric" readonly
+                   style="width:160px;background:#eef6ff;font-weight:700" oninput="fmtInput(this)">
+            <span id="em-totalamt-hint" style="font-size:11px;color:#6b7280">내역 합계 자동계산</span>
+        </div>
+
+        <p class="sec-title" style="margin-top:14px">내역</p>
+        <div class="tbl-scroll">
+        <table class="items-tbl">
+            <thead>
+                <tr>
+                    <th style="width:65px">구분</th>
+                    <th style="width:105px">금액 (원)</th>
+                    <th style="width:108px">만기일</th>
+                    <th style="width:80px">발행인</th>
+                    <th style="width:88px">지급은행</th>
+                    <th style="width:108px">어음번호</th>
+                    <th style="width:36px"></th>
+                </tr>
+            </thead>
+            <tbody id="em-items-body"></tbody>
+        </table>
+        </div>
+        <button class="btn-add" style="margin-top:8px" onclick="addEditRow()">＋ 행 추가</button>
+
+        <div style="display:flex;gap:10px;margin-top:22px;justify-content:flex-end">
+            <button class="btn-cancel-edit" onclick="closeEditModal()">취소</button>
+            <button class="btn-save-edit"   onclick="saveEditModal()">저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ 서명 패드 모달 ═══════════════════ -->
+<div id="signModal" onclick="if(event.target===this)closeSignModal()">
+    <div id="signModalBox">
+        <h3 style="font-size:15px;color:#1a3562;border-bottom:2px solid #1a3562;
+                   padding-bottom:8px;margin-bottom:10px">✍️ 서명 입력</h3>
+        <p style="font-size:11px;color:#6b7280;margin-bottom:8px">아래 박스 안에 서명하세요 (마우스 또는 터치)</p>
+        <canvas id="signCanvas" width="380" height="150"></canvas>
+        <div class="sign-btns">
+            <button onclick="clearSignCanvas()"
+                style="border:1px solid #d1d5db;background:#f3f4f6;color:#374151">
+                지우기
+            </button>
+            <button onclick="closeSignModal()"
+                style="border:none;background:#6b7280;color:#fff">
+                취소
+            </button>
+            <button onclick="saveSignCanvas()"
+                style="border:none;background:#2563eb;color:#fff;font-weight:700">
+                확인
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ 출력 영역 ═══════════════════ -->
+<div class="rcp-wrapper" id="rcpOutput"></div>
+
+<script>
+/* ─── 자동 채번 – 담당자별 독립 카운터 ─── */
+const NO_KEY  = 'igum_docno_v2';   // 담당자별 객체 저장
+const HIST_KEY = 'igum_history';    // 이력 저장 키
+const JBIN_API_KEY_STORE = 'igum_jbin_apikey';
+const JBIN_BIN_ID_STORE  = 'igum_jbin_binid';
+const JBIN_API = 'https://api.jsonbin.io/v3/b';
+
+function getManager() {
+    return document.getElementById('manager').value.trim() || '__공통__';
+}
+
+function loadSeqFor(mgr) {
+    const yy = String(new Date().getFullYear()).slice(-2);
+    try {
+        const all = JSON.parse(localStorage.getItem(NO_KEY) || '{}');
+        const e   = all[mgr];
+        if (e && e.yy === yy) return { yy, next: e.next };
+    } catch(e) {}
+    return { yy, next: 1 };
+}
+
+function fmtNo(yy, seq) {
+    return yy + String(seq).padStart(5, '0');
+}
+
+function initDocNo(histOverride) {
+    const mgr  = getManager();
+    const yy   = String(new Date().getFullYear()).slice(-2);
+    const hist = (histOverride && histOverride.length > 0) ? histOverride : getHistory();
+    let maxSeq = 0;
+    hist.forEach(function(r) {
+        if (r.no) {
+            const n = parseInt(String(r.no).slice(-5));
+            if (!isNaN(n) && n > maxSeq) maxSeq = n;
+        }
+    });
+    document.getElementById('docNo').value = fmtNo(yy, maxSeq + 1);
+}
+
+function advanceDocNo() {
+    const mgr        = getManager();
+    const { yy, next } = loadSeqFor(mgr);
+    try {
+        const all  = JSON.parse(localStorage.getItem(NO_KEY) || '{}');
+        all[mgr]   = { yy, next: next + 1 };
+        localStorage.setItem(NO_KEY, JSON.stringify(all));
+    } catch(e) {}
+}
+
+function resetSeq() {
+    const mgr   = getManager();
+    const label = mgr !== '__공통__' ? `[${mgr}]의 ` : '';
+    const yy    = String(new Date().getFullYear()).slice(-2);
+    const cur   = parseInt(prompt(`${label}다음에 사용할 번호를 입력하세요 (뒤 5자리)`, '1'));
+    if (!isNaN(cur) && cur > 0) {
+        try {
+            const all = JSON.parse(localStorage.getItem(NO_KEY) || '{}');
+            all[mgr]  = { yy, next: cur };
+            localStorage.setItem(NO_KEY, JSON.stringify(all));
+        } catch(e) {}
+        initDocNo();
+    }
+}
+
+/* ─── 페이지 초기화 ─── */
+(async () => {
+    document.getElementById('rcpDate').valueAsDate = new Date();
+    document.getElementById('docNo').value = '...';
+    addRow();
+    try { await initCloudSync(); } catch(e) {}
+    try {
+        if (isCloudOn()) {
+            await pullFromCloud();   // 내부에서 initDocNo() 호출
+        } else {
+            initDocNo();
+        }
+    } catch(e) {
+        initDocNo();   // 클라우드 실패 시 로컬 히스토리로 채번
+    }
+})();
+
+// 페이지 로드 완료 후 최종 채번 보정 (브라우저 자동완성 등 방지)
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        const el = document.getElementById('docNo');
+        if (!el || el.value === '...') return;
+        const yy = String(new Date().getFullYear()).slice(-2);
+        const hist = getHistory();
+        const usedNos = new Set(hist.map(function(r){ return r.no; }).filter(Boolean));
+        let seq = parseInt((el.value || '').slice(-5)) || 1;
+        while (usedNos.has(fmtNo(yy, seq))) seq++;
+        el.value = fmtNo(yy, seq);
+    }, 800);
+});
+
+/* ─── 행 추가/삭제 ─── */
+function addRow() {
+    const tbody = document.getElementById('itemsBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><select class="i-type">
+            <option>어음</option><option>현금</option>
+            <option>가계수표</option><option>당좌</option>
+        </select></td>
+        <td><input class="i-amt" type="text" inputmode="numeric" placeholder="금액" oninput="fmtInput(this); calcTotal()"></td>
+        <td><input class="i-due"    type="date"></td>
+        <td><input class="i-issu"   type="text"   placeholder="발행인"></td>
+        <td><input class="i-bank"   type="text"   placeholder="지급은행"></td>
+        <td><input class="i-billno" type="text"   placeholder="어음번호"></td>
+        <td style="text-align:center">
+            <button class="btn-del" onclick="delRow(this)">×</button>
+        </td>`;
+    tbody.appendChild(tr);
+}
+
+function delRow(btn) {
+    const rows = document.querySelectorAll('#itemsBody tr');
+    if (rows.length > 1) { btn.closest('tr').remove(); calcTotal(); }
+}
+
+/* ─── 비고 연동: 입력 시 합계금액 수동모드 전환 ─── */
+function noteChanged() {
+    const hasNote = document.getElementById('note').value.trim() !== '';
+    const el      = document.getElementById('totalAmt');
+    const hint    = document.getElementById('totalAmtHint');
+    if (hasNote) {
+        el.removeAttribute('readonly');
+        el.style.background = '#fff';
+        el.style.cursor     = '';
+        el.value            = '';
+        hint.textContent    = '직접 입력';
+        hint.style.color    = '#b45309';
+        document.getElementById('amtPreview').textContent = '';
+        el.focus();
+    } else {
+        el.setAttribute('readonly', '');
+        el.style.background = '#eef6ff';
+        el.style.cursor     = 'default';
+        hint.textContent    = '내역 합계 자동계산';
+        hint.style.color    = '#6b7280';
+        calcTotal();
+    }
+}
+
+/* ─── 합계 자동계산 ─── */
+function calcTotal() {
+    if (document.getElementById('note').value.trim()) return; // 비고 입력 시 수동모드
+    let sum = 0;
+    document.querySelectorAll('.i-amt').forEach(el => {
+        sum += parseAmt(el.value);
+    });
+    document.getElementById('totalAmt').value = sum ? sum.toLocaleString('ko-KR') : '';
+    previewAmt();
+}
+
+/* ─── 콤마 포맷 / 파싱 헬퍼 ─── */
+function fmtInput(el) {
+    const raw = el.value.replace(/[^\d]/g, '');
+    el.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+}
+
+function parseAmt(str) {
+    return parseInt(String(str || '').replace(/,/g, '')) || 0;
+}
+
+/* ─── 금액 미리보기 ─── */
+function previewAmt() {
+    const v = parseAmt(document.getElementById('totalAmt').value);
+    document.getElementById('amtPreview').textContent =
+        v ? `일금 ${kor(v)}원정` : '';
+}
+
+/* ─── 숫자 → 한글 금액 ─── */
+function kor(n) {
+    if (!n) return '영';
+    const d = ['','일','이','삼','사','오','육','칠','팔','구'];
+    const s = ['','십','백','천'];
+    const b = ['','만','억','조'];
+
+    function g4(x) {
+        let r = '', p = 0;
+        while (x > 0) {
+            const c = x % 10;
+            if (c) r = d[c] + s[p] + r;
+            x = Math.floor(x / 10); p++;
+        }
+        return r;
+    }
+
+    let res = '', gi = 0, tmp = n;
+    while (tmp > 0) {
+        const g = tmp % 10000;
+        if (g) res = g4(g) + b[gi] + res;
+        tmp = Math.floor(tmp / 10000); gi++;
+    }
+    return res;
+}
+
+/* ─── 금액 → 10칸 자릿수 배열 (십억~원) ─── */
+function digitCells(n) {
+    const s = String(Math.min(Math.max(0, n), 9999999999)).padStart(10, '0');
+    const arr = s.split('');
+    const fi = arr.findIndex(c => c !== '0');
+    return arr.map((c, i) => (fi < 0 || i < fi) ? '' : c);
+}
+
+/* ─── 날짜 파싱 ─── */
+function parseDate(ds) {
+    if (!ds) return { y:'', m:'', d:'' };
+    const dt = new Date(ds + 'T00:00:00');
+    return { y: dt.getFullYear(), m: dt.getMonth()+1, d: dt.getDate() };
+}
+
+function fmtDue(ds) {
+    if (!ds) return '';
+    const dt = new Date(ds + 'T00:00:00');
+    return `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+function fmtMoney(v) {
+    return v ? Number(v).toLocaleString('ko-KR') : '';
+}
+
+/* ─── 생성 ─── */
+const COPIES = [
+    ['(1)', '공급받는자 보관용', '공급받는자보관용'],
+    ['(2)', '공급자 보관용',     '공급자보관용'],
+    ['(3)', '경리제출용',        '경리제출용'],
+];
+
+let currentDocNo = '';
+let signDataUrl  = '';
+let _loadedGroupHtml = null;  // 불러온 입금표 HTML 캐시
+const STAMP_IMG_SRC = 'data:image/jpeg;base64,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';
+
+function loadSign(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        signDataUrl = e.target.result;
+        document.getElementById('signPreview').innerHTML =
+            `<img src="${signDataUrl}" style="height:42px;border:1px solid #ddd;border-radius:4px;padding:2px;background:#fff">`;
+        document.getElementById('signClearBtn').style.display = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearSign() {
+    signDataUrl = '';
+    document.getElementById('signImg').value = '';
+    document.getElementById('signPreview').innerHTML = '';
+    document.getElementById('signClearBtn').style.display = 'none';
+}
+
+
+/* ─── 그룹 단위 렌더링 (불러오기 + 신규 공용) ─── */
+function makeGroupHtml(groupId, groupLabel, labelCls, docNo, toName, date, cells, korAmt, items, dept, manager, note, specialNote, signSrc) {
+    return `<div class="rcp-group" id="${groupId}">
+        <div class="rcp-group-header ${labelCls}">${groupLabel}</div>
+        <div class="save-all-bar">
+            <button class="btn-save-all" onclick="saveAllInGroup('${groupId}','${docNo}')">
+                📷 &nbsp;3매 모두 이미지 저장 (카카오톡 공유용)
+            </button>
+        </div>` +
+        COPIES.map(([num, label, fname], i) =>
+            `<div class="rcp-wrap">
+                <div class="rcp-page" id="${groupId}-p${i}">${makeForm(num, label, docNo, toName, date, cells, korAmt, items, dept, manager, note, specialNote, signSrc)}</div>
+                <button class="btn-img-save" onclick="saveImgByElem('${groupId}-p${i}','${fname}','${docNo}')">
+                    💾 &nbsp;${fname} 저장
+                </button>
+            </div>`
+        ).join('') +
+        `</div>`;
+}
+
+function generate() {
+    const docNo    = document.getElementById('docNo').value.trim();
+    currentDocNo   = docNo;   // 이미지 파일명용으로 저장
+    const toName   = document.getElementById('toName').value.trim();
+    const dateStr  = document.getElementById('rcpDate').value;
+    const totalAmt = parseAmt(document.getElementById('totalAmt').value);
+    const dept     = document.getElementById('dept').value.trim();
+    const manager  = document.getElementById('manager').value.trim();
+    const note        = document.getElementById('note').value.trim();
+    const specialNote = document.getElementById('specialNote').value.trim();
+
+    const date   = parseDate(dateStr);
+    const cells  = digitCells(totalAmt);
+    const korAmt = totalAmt ? `일금 ${kor(totalAmt)}원정` : '일금';
+
+    const items = [];
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+        items.push({
+            type:   tr.querySelector('.i-type').value,
+            amt:    tr.querySelector('.i-amt').value.replace(/,/g, ''),
+            due:    tr.querySelector('.i-due').value,
+            issu:   tr.querySelector('.i-issu').value,
+            bank:   tr.querySelector('.i-bank').value,
+            billno: tr.querySelector('.i-billno').value,
+        });
+    });
+
+    const groupId = 'gen-' + Date.now();
+    const newGroupHtml = makeGroupHtml(groupId, '🆕 새로 생성된 입금표', 'generated', docNo, toName, date, cells, korAmt, items, dept, manager, note, specialNote, signDataUrl);
+
+    const out = document.getElementById('rcpOutput');
+    if (_loadedGroupHtml !== null) {
+        out.innerHTML = _loadedGroupHtml + '<hr class="rcp-group-divider">' + newGroupHtml;
+        _loadedGroupHtml = null;
+    } else {
+        out.innerHTML = newGroupHtml;
+    }
+
+    // 이력 저장
+    saveHistory({
+        no: docNo, toName, date: dateStr, totalAmt,
+        items: JSON.parse(JSON.stringify(items)),
+        dept, manager, note, specialNote,
+        savedAt: new Date().toISOString()
+    });
+
+    advanceDocNo();   // 번호 소비 → localStorage 업데이트
+    initDocNo();      // 입력칸을 다음 번호로 즉시 갱신
+
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ─── 이미지 저장 ─── */
+async function saveImg(idx) {
+    const pages  = document.querySelectorAll('.rcp-page');
+    const fnames = ['공급받는자보관용', '공급자보관용', '경리제출용'];
+    const rcp    = pages[idx].querySelector('.rcp');
+
+    const canvas = await html2canvas(rcp, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false
+    });
+
+    const a = document.createElement('a');
+    a.download = `입금표_${fnames[idx]}_NO${currentDocNo}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+}
+
+async function saveAllImgs() {
+    for (let i = 0; i < 3; i++) {
+        await saveImg(i);
+        await new Promise(r => setTimeout(r, 400));   // 브라우저 다운로드 간격
+    }
+}
+
+/* ─── 입금표 HTML 생성 ─── */
+
+/* ─── 그룹별 저장 (불러오기/신규 공용) ─── */
+async function saveImgByElem(pageId, fname, docNo) {
+    const page = document.getElementById(pageId);
+    if (!page) return;
+    const rcp = page.querySelector('.rcp');
+    const canvas = await html2canvas(rcp, {
+        scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false
+    });
+    const a = document.createElement('a');
+    a.download = `입금표_${fname}_NO${docNo}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+}
+
+async function saveAllInGroup(groupId, docNo) {
+    const fnames = ['공급받는자보관용', '공급자보관용', '경리제출용'];
+    for (let i = 0; i < 3; i++) {
+        await saveImgByElem(`${groupId}-p${i}`, fnames[i], docNo);
+        await new Promise(r => setTimeout(r, 400));
+    }
+}
+
+function makeForm(num, copyLabel, docNo, toName, date, cells, korAmt, items, dept, manager, note, specialNote, signDataUrl) {
+    const colHdrs = ['십억','억','천만','백만','십만','만','천','백','십','원'];
+
+    // ￦을 첫 번째 숫자 바로 앞 칸에 동적 배치
+    const firstDigitIdx = cells.findIndex(c => c !== '');
+
+    // 헤더: 완전히 빈 칸(￦ 칸 포함 전)은 회색 처리
+    const headerCols = colHdrs.map((h, i) => {
+        const dimmed = firstDigitIdx > 1 && i < firstDigitIdx - 1;
+        const bg = dimmed ? 'background:#ececec;color:#bbb;' : '';
+        return `<td style="border:1px solid #000;text-align:center;font-size:9px;padding:1px 0;${bg}">${h}</td>`;
+    }).join('');
+
+    // 데이터: 빈 칸 회색, 첫 숫자 바로 앞 칸은 ￦
+    const dataCols = cells.map((c, i) => {
+        let content = c, extra = '';
+        if (c === '') {
+            if (firstDigitIdx > 0 && i === firstDigitIdx - 1) {
+                content = '￦';                       // ￦ 동적 위치
+            } else {
+                extra = 'background:#f5f5f5;';        // 빈 칸 회색
+            }
+        }
+        return `<td style="border:1px solid #000;text-align:center;font-weight:700;height:23px;${extra}">${content}</td>`;
+    }).join('');
+
+    // 내역 5행 — 실데이터 없는 행은 "/" 로 채움
+    const itemRows = Array.from({length: 5}, (_, i) => {
+        const it = items[i] || {};
+        const hasData = it.amt || it.due || it.issu || it.bank || it.billno;
+        const slash = `<td style="text-align:center;color:#aaa">/</td>`;
+        if (!hasData) {
+            return `<tr style="height:20px">${slash.repeat(6)}</tr>`;
+        }
+        return `<tr style="height:20px">
+            <td style="text-align:center">${it.type || ''}</td>
+            <td style="text-align:right">${fmtMoney(it.amt)}</td>
+            <td style="text-align:center">${fmtDue(it.due)}</td>
+            <td style="text-align:center">${it.issu || ''}</td>
+            <td style="text-align:center">${it.bank || ''}</td>
+            <td style="text-align:center">${it.billno || ''}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+<div class="rcp">
+
+  <!-- 제목 -->
+  <div class="title-bar">
+    <span class="title-copy">${num}</span>
+    <span class="title-main">입 금 표</span>
+    <span class="title-label">(${copyLabel})</span>
+  </div>
+
+  <!-- 귀하 / NO -->
+  <div class="no-row">
+    ${toName ? `<strong>${toName}</strong>&ensp;` : ''}귀하
+    &emsp;&emsp;&emsp;
+    NO.&ensp;<span style="color:red;font-weight:700">${docNo || ''}</span>
+  </div>
+
+  <!-- 공급자 정보 -->
+  <table>
+    <tr>
+      <td rowspan="4" style="writing-mode:vertical-rl;letter-spacing:5px;
+          text-align:center;width:18px;font-size:11px">공급자</td>
+      <td style="width:72px;background:#f8f8f8">사업자등록번호</td>
+      <td colspan="3" style="letter-spacing:2px">1 3 1 &ensp;–&ensp; 8 1 &ensp;–&ensp; 0 6 2 0 0</td>
+    </tr>
+    <tr>
+      <td style="background:#f8f8f8">상&emsp;&emsp;호</td>
+      <td>이건산업(주)</td>
+      <td style="width:38px;background:#f8f8f8">성&ensp;명</td>
+      <td style="white-space:nowrap">대표이사 백오현<img src="${STAMP_IMG_SRC}" style="width:38px;height:38px;object-fit:contain;vertical-align:middle;margin-left:4px;opacity:0.88">${signDataUrl ? `<img src="${signDataUrl}" style="width:38px;height:38px;object-fit:contain;vertical-align:middle;margin-left:4px;opacity:0.88">` : ''}</td>
+    </tr>
+    <tr>
+      <td style="background:#f8f8f8">사업장소재지</td>
+      <td colspan="3">인천광역시 미추홀구 염전로 91(도화동)</td>
+    </tr>
+    <tr>
+      <td style="background:#f8f8f8">업태 및 업종</td>
+      <td colspan="3">제조, 부동산 / 합판, 목재</td>
+    </tr>
+  </table>
+
+  <!-- 날짜 + 금액 자릿수 -->
+  <table style="margin-top:4px">
+    <tr>
+      <td style="border:1px solid #000;text-align:center;width:42px;font-size:10px">년</td>
+      <td style="border:1px solid #000;text-align:center;width:26px;font-size:10px">월</td>
+      <td style="border:1px solid #000;text-align:center;width:26px;font-size:10px">일</td>
+      ${headerCols}
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;text-align:center;font-weight:700">${date.y}</td>
+      <td style="border:1px solid #000;text-align:center;font-weight:700">${date.m}</td>
+      <td style="border:1px solid #000;text-align:center;font-weight:700">${date.d}</td>
+      ${dataCols}
+    </tr>
+  </table>
+
+  <!-- 한글 금액 -->
+  <table style="margin-top:4px">
+    <tr>
+      <td style="padding:4px 8px;font-size:12px;font-weight:700">${korAmt}</td>
+      <td style="padding:4px 8px;text-align:right;font-weight:900;
+          font-size:13px;white-space:nowrap;width:50px">원정</td>
+    </tr>
+  </table>
+
+  <!-- 내역 구분 안내 -->
+  <div style="font-size:10px;padding:3px 1px">내역(구분 : 현금, 가계수표, 당좌, 어음)</div>
+  ${note ? `<div style="font-size:14px;font-weight:900;text-align:center;
+      padding:4px 0 2px;letter-spacing:4px">${note}</div>` : ''}
+
+  <!-- 내역 테이블 -->
+  <table>
+    <thead>
+      <tr style="background:#f5f5f5">
+        <th style="width:42px">구분</th>
+        <th style="width:78px">금&nbsp;&nbsp;액</th>
+        <th style="width:78px">만기일</th>
+        <th>발&nbsp;행&nbsp;인</th>
+        <th>지급은행</th>
+        <th>어음번호</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <!-- 비고란 -->
+  ${specialNote ? `<table style="margin-top:5px;width:100%"><tr>
+    <td style="border:1px solid #000;padding:2px 5px;font-size:10px;
+        white-space:nowrap;width:28px;background:#f8f8f8;text-align:center;
+        vertical-align:top">비&ensp;고</td>
+    <td style="border:1px solid #000;padding:3px 6px;font-size:11px;
+        white-space:pre-wrap;line-height:1.6">${specialNote}</td>
+  </tr></table>` : ''}
+
+  <div style="font-size:12px;margin-top:6px">위 대금의 지급을 위하여 영수함.</div>
+
+  <div style="margin-top:10px">
+    <span style="font-size:15px;font-weight:900">이건산업주식회사</span>
+  </div>
+
+</div>`;
+}
+
+/* ══════════════════════════════════════
+   이력 관리
+══════════════════════════════════════ */
+/* HIST_KEY → 상단으로 이동 */
+
+function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); }
+    catch(e) { return []; }
+}
+
+function saveHistory(record) {
+    const hist = getHistory();
+    hist.unshift(record);
+    if (hist.length > 300) hist.pop();
+    localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+    pushToCloud(hist);
+}
+
+function toggleHistory() {
+    const panel = document.getElementById('historyPanel');
+    const visible = panel.style.display === 'block';
+    panel.style.display = visible ? 'none' : 'block';
+    if (!visible) {
+        if (isCloudOn()) {
+            pullFromCloud().then(() => renderHistory());
+        } else {
+            renderHistory();
+        }
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function renderHistory() {
+    const hist = getHistory();
+    const tbody = document.getElementById('histBody');
+    if (hist.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#aaa">저장된 이력이 없습니다</td></tr>';
+        return;
+    }
+    tbody.innerHTML = hist.map((r, i) => {
+        const modBadge = r.modified
+            ? `<span class="badge-modified">✏️ 수정됨</span>` : '';
+        const savedAtCell = r.modified
+            ? `<span style="color:#888;font-size:11px">${fmtSavedAt(r.savedAt)}</span><br>
+               <span style="color:#b45309;font-size:10px">✏️ 수정: ${fmtSavedAt(r.modifiedAt)}</span>`
+            : `<span style="color:#888;font-size:11px">${fmtSavedAt(r.savedAt)}</span>`;
+        return `
+        <tr class="${r.modified ? 'row-modified' : ''}">
+            <td style="text-align:center;font-weight:700">${r.no}${modBadge}</td>
+            <td>${r.toName || ''}</td>
+            <td style="text-align:center">${r.date || ''}</td>
+            <td style="text-align:right">${Number(r.totalAmt||0).toLocaleString('ko-KR')}</td>
+            <td style="text-align:center">${r.note || ''}</td>
+            <td style="text-align:center">${r.manager || ''}</td>
+            <td style="text-align:center">${savedAtCell}</td>
+            <td style="text-align:center;white-space:nowrap">
+                <button class="btn-edit-hist" onclick="openEditModal(${i})">✏️ 수정</button>
+                &nbsp;
+                <button class="btn-reload"    onclick="reloadRecord(${i})">불러오기</button>
+                &nbsp;
+                <button class="btn-del-hist"  onclick="deleteRecord(${i})">삭제</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function fmtSavedAt(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} `
+         + `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function reloadRecord(idx) {
+    const r = getHistory()[idx];
+    if (!r) return;
+
+    document.getElementById('docNo').value    = r.no || '';
+    document.getElementById('toName').value   = r.toName || '';
+    document.getElementById('rcpDate').value  = r.date || '';
+    document.getElementById('dept').value     = r.dept || '';
+    document.getElementById('manager').value  = r.manager || '';
+    document.getElementById('note').value        = r.note || '';
+    noteChanged();   // 비고 연동 (totalAmt 모드 전환)
+    document.getElementById('specialNote').value = r.specialNote || '';
+    document.getElementById('totalAmt').value = r.totalAmt ? Number(r.totalAmt).toLocaleString('ko-KR') : '';
+    previewAmt();
+
+    // 내역 행 복원
+    document.getElementById('itemsBody').innerHTML = '';
+    (r.items || []).forEach(it => {
+        addRow();
+        const rows = document.querySelectorAll('#itemsBody tr');
+        const row  = rows[rows.length - 1];
+        row.querySelector('.i-type').value  = it.type  || '어음';
+        row.querySelector('.i-amt').value   = it.amt ? Number(it.amt).toLocaleString('ko-KR') : '';
+        row.querySelector('.i-due').value   = it.due   || '';
+        row.querySelector('.i-issu').value  = it.issu  || '';
+        row.querySelector('.i-bank').value  = it.bank  || '';
+        row.querySelector('.i-billno').value= it.billno|| '';
+    });
+    if (!r.items || r.items.length === 0) addRow();
+    if (!r.note) calcTotal();
+
+    // 불러온 입금표 즉시 렌더링
+    const _rDate   = parseDate(r.date);
+    const _rAmt    = Number(r.totalAmt || 0);
+    const _rCells  = digitCells(_rAmt);
+    const _rKor    = _rAmt ? `일금 ${kor(_rAmt)}원정` : '일금';
+    const _gId     = 'loaded-' + Date.now();
+    const _gLabel  = `📋 불러온 입금표 &nbsp;·&nbsp; No.${r.no || '?'} &nbsp;·&nbsp; ${r.toName || ''}`;
+    _loadedGroupHtml = makeGroupHtml(_gId, _gLabel, 'loaded', r.no || '', r.toName || '', _rDate, _rCells, _rKor, r.items || [], r.dept || '', r.manager || '', r.note || '', r.specialNote || '', STAMP_IMG_SRC);
+
+    const _out = document.getElementById('rcpOutput');
+    _out.innerHTML = _loadedGroupHtml;
+
+    document.getElementById('historyPanel').style.display = 'none';
+    _out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function deleteRecord(idx) {
+    if (!confirm('이 이력을 삭제하시겠습니까?')) return;
+    const hist = getHistory();
+    hist.splice(idx, 1);
+    localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+    pushToCloud(hist);
+    renderHistory();
+    initDocNo();
+}
+
+function clearAllHistory() {
+    if (!confirm('이력을 전체 삭제하시겠습니까?')) return;
+    localStorage.removeItem(HIST_KEY);
+    pushToCloud([]);
+    renderHistory();
+    initDocNo();
+}
+
+/* ══════════════════════════════════════
+   이력 수정 모달
+══════════════════════════════════════ */
+let editingIdx = -1;
+
+function openEditModal(idx) {
+    const r = getHistory()[idx];
+    if (!r) return;
+    editingIdx = idx;
+
+    document.getElementById('em-docno').value   = r.no || '';
+    document.getElementById('em-toname').value  = r.toName || '';
+    document.getElementById('em-date').value    = r.date || '';
+    document.getElementById('em-dept').value    = r.dept || '';
+    document.getElementById('em-manager').value = r.manager || '';
+    document.getElementById('em-note').value        = r.note || '';
+    emNoteChanged();  // 비고 여부에 따라 합계금액 모드 설정
+    document.getElementById('em-specialNote').value = r.specialNote || '';
+    document.getElementById('em-totalamt').value = r.totalAmt ? Number(r.totalAmt).toLocaleString('ko-KR') : '';
+
+    const tbody = document.getElementById('em-items-body');
+    tbody.innerHTML = '';
+    (r.items || []).forEach(it => addEditRow(it));
+    if (!r.items || r.items.length === 0) addEditRow();
+
+    document.getElementById('editModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    document.body.style.overflow = '';
+    editingIdx = -1;
+}
+
+function emNoteChanged() {
+    const hasNote = document.getElementById('em-note').value.trim() !== '';
+    const el   = document.getElementById('em-totalamt');
+    const hint = document.getElementById('em-totalamt-hint');
+    if (hasNote) {
+        el.removeAttribute('readonly');
+        el.style.background = '#fff';
+        hint.textContent = '직접 입력';
+        hint.style.color = '#b45309';
+    } else {
+        el.setAttribute('readonly', '');
+        el.style.background = '#eef6ff';
+        hint.textContent = '내역 합계 자동계산';
+        hint.style.color = '#6b7280';
+        calcEditTotal();
+    }
+}
+
+function calcEditTotal() {
+    if (document.getElementById('em-note').value.trim()) return;
+    let sum = 0;
+    document.querySelectorAll('#em-items-body .em-amt').forEach(el => {
+        sum += parseAmt(el.value);
+    });
+    document.getElementById('em-totalamt').value = sum ? sum.toLocaleString('ko-KR') : '';
+}
+
+function addEditRow(it) {
+    it = it || {};
+    const tbody = document.getElementById('em-items-body');
+    const tr = document.createElement('tr');
+    const typeOpts = ['어음','현금','가계수표','당좌'].map(t =>
+        `<option${t === (it.type || '어음') ? ' selected' : ''}>${t}</option>`
+    ).join('');
+    tr.innerHTML = `
+        <td><select class="em-type">${typeOpts}</select></td>
+        <td><input class="em-amt" type="text" inputmode="numeric"
+             value="${it.amt ? Number(it.amt).toLocaleString('ko-KR') : ''}"
+             placeholder="금액" oninput="fmtInput(this); calcEditTotal()"></td>
+        <td><input class="em-due" type="date" value="${it.due || ''}"></td>
+        <td><input class="em-issu" type="text" value="${it.issu || ''}" placeholder="발행인"></td>
+        <td><input class="em-bank" type="text" value="${it.bank || ''}" placeholder="지급은행"></td>
+        <td><input class="em-billno" type="text" value="${it.billno || ''}" placeholder="어음번호"></td>
+        <td style="text-align:center">
+            <button class="btn-del" onclick="delEditRow(this)">×</button>
+        </td>`;
+    tbody.appendChild(tr);
+}
+
+function delEditRow(btn) {
+    const rows = document.querySelectorAll('#em-items-body tr');
+    if (rows.length > 1) { btn.closest('tr').remove(); calcEditTotal(); }
+}
+
+function saveEditModal() {
+    if (editingIdx < 0) return;
+    const hist = getHistory();
+    if (!hist[editingIdx]) return;
+
+    const items = [];
+    document.querySelectorAll('#em-items-body tr').forEach(tr => {
+        items.push({
+            type:   tr.querySelector('.em-type').value,
+            amt:    tr.querySelector('.em-amt').value.replace(/,/g, ''),
+            due:    tr.querySelector('.em-due').value,
+            issu:   tr.querySelector('.em-issu').value,
+            bank:   tr.querySelector('.em-bank').value,
+            billno: tr.querySelector('.em-billno').value,
+        });
+    });
+
+    hist[editingIdx] = {
+        ...hist[editingIdx],
+        no:         document.getElementById('em-docno').value.trim(),
+        toName:     document.getElementById('em-toname').value.trim(),
+        date:       document.getElementById('em-date').value,
+        dept:       document.getElementById('em-dept').value.trim(),
+        manager:    document.getElementById('em-manager').value.trim(),
+        note:        document.getElementById('em-note').value.trim(),
+        specialNote: document.getElementById('em-specialNote').value.trim(),
+        totalAmt:   parseAmt(document.getElementById('em-totalamt').value),
+        items,
+        modified:   true,
+        modifiedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+    pushToCloud(hist);
+    closeEditModal();
+    renderHistory();
+}
+
+/* ══════════════════════════════════════
+   클라우드 동기화 (JSONBin.io)
+══════════════════════════════════════ */
+/* JBIN 상수 → 상단으로 이동 */
+
+function getApiKey() { return '$2a$10$EBgaN2Yt8dlZ5Qvtqwa5duZRilToPmGx6FCEz/SXOjYBx.J1NwSOG'; }
+function getBinId()  { return '69a92217ae596e708f610aa1'; }
+function isCloudOn() { return !!(getApiKey() && getBinId()); }
+
+function setSyncStatus(st) {
+    const el = document.getElementById('syncStatus');
+    if (!el) return;
+    const labels = {
+        ok:       '🟢 동기화됨',
+        syncing:  '🔄 동기화 중...',
+        error:    '🔴 오류',
+        disabled: '⚪ 미설정',
+        ready:    '🔵 연결됨'
+    };
+    const colors = {
+        ok:'#16a34a', syncing:'#2563eb', error:'#dc2626',
+        disabled:'#9ca3af', ready:'#0369a1'
+    };
+    el.textContent = labels[st] || '';
+    el.style.color  = colors[st] || '';
+}
+
+async function pullFromCloud() {
+    if (!isCloudOn()) { setSyncStatus('disabled'); return; }
+    setSyncStatus('syncing');
+    try {
+        const r = await fetch(`${JBIN_API}/${getBinId()}/latest`, {
+            headers: { 'X-Master-Key': getApiKey() }
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        // JSONBin 응답에서 이력 추출 (두 가지 저장 형식 모두 지원)
+        const raw = d.record;
+        const hist = Array.isArray(raw?.history) ? raw.history
+                   : Array.isArray(raw)           ? raw
+                   : [];
+        console.log('[pullFromCloud] 이력 건수:', hist.length);
+        if (hist.length > 0) {
+            localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+        }
+        if (hist.length > 0) { initDocNo(hist); } else { initDocNo(); }
+        setSyncStatus('ok');
+    } catch(e) {
+        setSyncStatus('error');
+        console.error('pullFromCloud error:', e);
+        initDocNo();
+    }
+}
+
+async function pushToCloud(hist) {
+    if (!isCloudOn()) return;
+    setSyncStatus('syncing');
+    try {
+        const r = await fetch(`${JBIN_API}/${getBinId()}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': getApiKey()
+            },
+            body: JSON.stringify({ history: hist ?? getHistory() })
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        setSyncStatus('ok');
+    } catch(e) {
+        setSyncStatus('error');
+        console.error('pushToCloud:', e);
+    }
+}
+
+async function createNewBin() {
+    const apiKey = document.getElementById('cloud-apikey').value.trim();
+    if (!apiKey) { alert('API Key를 먼저 입력해주세요.'); return; }
+    const btn = document.querySelector('#cloudModalBox .btn-cloud');
+    const orig = btn.textContent;
+    btn.textContent = '생성 중...';
+    btn.disabled = true;
+    try {
+        const r = await fetch(JBIN_API, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': apiKey,
+                'X-Bin-Name': 'igum-history',
+                'X-Bin-Private': 'true'
+            },
+            body: JSON.stringify({ history: getHistory() })
+        });
+        if (!r.ok) {
+            const err = await r.text();
+            throw new Error(`HTTP ${r.status}: ${err}`);
+        }
+        const d = await r.json();
+        const binId = d.metadata?.id;
+        if (!binId) throw new Error('Bin ID를 받지 못했습니다.');
+        document.getElementById('cloud-binid').value = binId;
+        alert(`✅ 새 Bin이 생성됐습니다!\nBin ID: ${binId}\n\n"저장" 버튼을 눌러 설정을 완료하세요.`);
+    } catch(e) {
+        alert(`Bin 생성 실패: ${e.message}\nAPI Key를 확인해주세요.`);
+    } finally {
+        btn.textContent = orig;
+        btn.disabled = false;
+    }
+}
+
+async function initCloudSync() {
+    setSyncStatus(isCloudOn() ? 'ready' : 'disabled');
+}
+
+async function manualSync() {
+    if (!isCloudOn()) { openCloudModal(); return; }
+    await pullFromCloud();
+    if (document.getElementById('historyPanel').style.display === 'block') renderHistory();
+}
+
+function openCloudModal() {
+    document.getElementById('cloud-apikey').value = getApiKey();
+    document.getElementById('cloud-binid').value  = getBinId();
+    document.getElementById('cloudModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCloudModal() {
+    document.getElementById('cloudModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+async function saveCloudSettings() {
+    const apiKey = document.getElementById('cloud-apikey').value.trim();
+    const binId  = document.getElementById('cloud-binid').value.trim();
+    if (!apiKey) { alert('API Key를 입력해주세요.'); return; }
+    if (!binId)  { alert('Bin ID를 입력하거나 새 Bin을 생성해주세요.'); return; }
+
+    localStorage.setItem(JBIN_API_KEY_STORE, apiKey);
+    localStorage.setItem(JBIN_BIN_ID_STORE,  binId);
+
+    const btn = document.querySelector('#cloudModalBox .btn-save-edit');
+    const orig = btn.textContent;
+    btn.textContent = '저장 중...';
+    btn.disabled = true;
+
+    await pullFromCloud();
+    if (document.getElementById('historyPanel').style.display === 'block') renderHistory();
+
+    btn.textContent = orig;
+    btn.disabled = false;
+    closeCloudModal();
+    alert('✅ 클라우드 동기화 설정이 완료됐습니다!\n\n다른 기기에서 같은 API Key + Bin ID를 입력하면 이력이 공유됩니다.');
+}
+
+function disconnectCloud() {
+    if (!confirm('클라우드 연결을 해제하시겠습니까?\n로컬 이력은 유지됩니다.')) return;
+    localStorage.removeItem(JBIN_API_KEY_STORE);
+    localStorage.removeItem(JBIN_BIN_ID_STORE);
+    setSyncStatus('disabled');
+    closeCloudModal();
+}
+
+/* ─── 초기화 ─── */
+function resetForm() {
+    document.getElementById('toName').value   = '';
+    document.getElementById('rcpDate').valueAsDate = new Date();
+    document.getElementById('note').value        = '';
+    noteChanged();   // totalAmt 자동계산 모드로 복귀
+    document.getElementById('specialNote').value = '';
+    document.getElementById('totalAmt').value = '';
+    document.getElementById('amtPreview').textContent = '';
+    document.getElementById('itemsBody').innerHTML = '';
+    document.getElementById('rcpOutput').innerHTML  = '';
+    // 담당자·담당부서는 유지 (같은 담당자가 연속 작성하는 경우가 많음)
+    initDocNo();   // 담당자 기준 다음 번호 세팅
+    addRow();
+}
+/* ════════════════════════════════════
+   업체 자동완성 드롭다운
+   - position:fixed  → 키보드 열려도 목록이 화면 위에 고정
+   - onpointerdown   → 마우스/터치 통합 (갤럭시 등 안드로이드 포함)
+════════════════════════════════════ */
+const VENDOR_LIST = [
+    "(유)동방","(유)백산목재","(유)자연건축자재","(주)SUN&L","(주)거산목재",
+    "(주)경민보드","(주)경신우드","(주)국민월드","(주)나무터","(주)나산팀버",
+    "(주)남부목재","(주)남주합판","(주)대구합판","(주)대산","(주)대아우딘",
+    "(주)대양목재합판건재","(주)대영우드","(주)대일임업","(주)동서합판",
+    "(주)두산종합목재","(주)두일상사","(주)디앤디이","(주)로자","(주)마감자재",
+    "(주)마루다움","(주)명성우드","(주)무나크","(주)미래합판","(주)바로상사",
+    "(주)반석개발","(주)봉림실업","(주)빅우드","(주)삼보건축자재","(주)삼보합판목재",
+    "(주)삼성홈센터","(주)삼영목재","(주)삼원","(주)삼익산업","(주)상희목재",
+    "(주)선우종합상사","(주)성민테크","(주)성원","(주)세진씨엠","(주)승일종합건재사",
+    "(주)신한건재목재","(주)씨맥","(주)아마존우드","(주)아이디스 아이 앤 에프",
+    "(주)에스케이우드","(주)예광","(주)온보드","(주)온우드","(주)우드림",
+    "(주)우드뱅크","(주)우드앤홈데코","(주)우드초이스","(주)원스탑우드",
+    "(주)원익큐브","(주)원하우징","(주)유앤아이우드","(주)은성목재","(주)준팀버",
+    "(주)지호우드","(주)참우드목재","(주)창신기업","(주)천일목재산업",
+    "(주)춘천건축자재백화점","(주)케이디우드","(주)케이에스우드","(주)케이원",
+    "(주)케이원 부산지점","(주)태백네트","(주)태신","(주)태왕목재","(주)태정",
+    "(주)피앤에스코리아","(주)하우징기린","(주)한결우드","(주)한국임업",
+    "(주)한림","(주)한진우드","(주)한호","(주)현재산업","(주)홈우드","(주)홍익우드",
+    "BM상사","기성건재(주)","대성정공(주)","대성합판미네랄데크합성목재휀스(유)",
+    "동방합판(주)","동일합판목재","디에스홈센터(유)","럭키목재(주)","모란합판(주)",
+    "미산우드(주)","베스트우드(BESTWOOD)","부진합판목재상사","비에스코리아 (BS KOREA)",
+    "삼안목재산업(주)","상록합판","상진우드","서문팀버(주)","성서합판상사","송담",
+    "씨에스우드(주)","엔에프우드(주)","연일목재 주식회사",
+    "우드 앤 홈데코(WOOD & HOME DECO)","우드플러스(주)","윈드(WIND)","유림목재(주)",
+    "유정가설산업","유창토탈합판(주)","인성건재사","장연(주)","정우합판(주)",
+    "정진테크(주)","주식회사 공간타라","주식회사 금강교구","주식회사 태신글로벌",
+    "중앙보드(주)","창대목재(주)","창신산업(주)","케이디코퍼레이션(주)",
+    "한국목재(주)","한국목재(주)대구지점","한국목재(주)인천지점","한국에스에스(주)",
+    "한림상사","한림에이치우드(주)","한림우드(주)","한미합판(주)-남양주",
+    "한미합판(주)-인천","한창합판(주)","해안실업(주)","현우목재"
+];
+
+(function () {
+    const dd   = () => document.getElementById('vendorDropdown');
+    const inp  = () => document.getElementById('toName');
+    let hideTimer = null;
+
+    /* 드롭다운 위치 계산 (fixed 기준 → 키보드 열려도 정확) */
+    function vdPosition() {
+        const rect = inp().getBoundingClientRect();
+        const vH   = window.innerHeight;
+        const el   = dd();
+        const spaceBelow = vH - rect.bottom;
+        const spaceAbove = rect.top;
+
+        el.style.left  = rect.left + 'px';
+        el.style.width = Math.max(rect.width, 220) + 'px';
+
+        if (spaceBelow >= 100 || spaceBelow >= spaceAbove) {
+            el.style.top       = (rect.bottom + 2) + 'px';
+            el.style.bottom    = 'auto';
+            el.style.maxHeight = Math.max(Math.min(spaceBelow - 8, 240), 80) + 'px';
+        } else {
+            el.style.top       = 'auto';
+            el.style.bottom    = (vH - rect.top + 2) + 'px';
+            el.style.maxHeight = Math.max(Math.min(spaceAbove - 8, 240), 80) + 'px';
+        }
+    }
+
+    /* 목록 렌더링 */
+    function vdRender(list) {
+        const el = dd();
+        if (list.length === 0) {
+            el.innerHTML = '<div class="vd-none">검색 결과 없음 – 직접 입력 가능</div>';
+        } else {
+            el.innerHTML = list.map(v => {
+                const safe = v.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                return '<div class="vd-item" data-v="' + safe + '">' + v + '</div>';
+            }).join('');
+        }
+    }
+
+    /* 목록 항목 터치/클릭 → 선택 */
+    dd().addEventListener('pointerdown', function (e) {
+        const item = e.target.closest('.vd-item');
+        if (!item) return;
+        e.preventDefault();          /* blur 방지 → hideTimer 취소 가능 */
+        clearTimeout(hideTimer);
+        inp().value = item.dataset.v;
+        dd().style.display = 'none';
+    });
+
+    /* 외부 노출 함수 (oninput / onfocus / onblur 에서 호출) */
+    window.vdFilter = function () {
+        const q = inp().value.toLowerCase();
+        const list = q ? VENDOR_LIST.filter(v => v.toLowerCase().includes(q)) : VENDOR_LIST;
+        vdRender(list);
+        vdPosition();
+        dd().style.display = 'block';
+    };
+
+    window.vdShow = function () {
+        clearTimeout(hideTimer);
+        const q = inp().value.toLowerCase();
+        const list = q ? VENDOR_LIST.filter(v => v.toLowerCase().includes(q)) : VENDOR_LIST;
+        vdRender(list);
+        vdPosition();
+        dd().style.display = 'block';
+    };
+
+    window.vdHide = function () {
+        hideTimer = setTimeout(() => { dd().style.display = 'none'; }, 250);
+    };
+
+    /* 화면 회전·스크롤 시 위치 재계산 */
+    window.addEventListener('resize',  vdPosition);
+    window.addEventListener('scroll',  vdPosition, true);
+})();
+
+/* ─── 서명 패드 ─── */
+let signPadActive  = false;
+let signPadDrawing = false;
+let signPadCtx     = null;
+
+function openSignModal() {
+    const modal  = document.getElementById('signModal');
+    const box    = document.getElementById('signModalBox');
+    const canvas = document.getElementById('signCanvas');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // 실제 렌더 폭에 맞게 캔버스 버퍼 크기 동적 조정
+    requestAnimationFrame(() => {
+        const w = box.clientWidth - 44;  // padding 22px × 2
+        canvas.width  = Math.max(w, 260);
+        canvas.height = Math.round(canvas.width * 0.48);
+
+        signPadCtx = canvas.getContext('2d');
+        signPadCtx.clearRect(0, 0, canvas.width, canvas.height);
+        signPadCtx.strokeStyle = '#0f172a';
+        signPadCtx.lineWidth   = 2.2;
+        signPadCtx.lineCap     = 'round';
+        signPadCtx.lineJoin    = 'round';
+        signPadDrawing = false;
+        signPadActive  = true;
+    });
+}
+
+function closeSignModal() {
+    document.getElementById('signModal').style.display = 'none';
+    document.body.style.overflow = '';
+    signPadActive = false;
+}
+
+function clearSignCanvas() {
+    const canvas = document.getElementById('signCanvas');
+    signPadCtx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function saveSignCanvas() {
+    const canvas = document.getElementById('signCanvas');
+    const data   = signPadCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+    if (!Array.from(data).some(v => v !== 0)) { alert('서명을 입력해주세요.'); return; }
+    signDataUrl = canvas.toDataURL('image/png');
+    document.getElementById('signPreview').innerHTML =
+        `<img src="${signDataUrl}" style="height:42px;border:1px solid #ddd;border-radius:4px;padding:2px;background:#fff">`;
+    document.getElementById('signClearBtn').style.display = '';
+    closeSignModal();
+}
+
+(function () {
+    function getSignPos(canvas, e) {
+        const rect   = canvas.getBoundingClientRect();
+        const scaleX = canvas.width  / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const src    = e.touches ? e.touches[0] : e;
+        return {
+            x: (src.clientX - rect.left) * scaleX,
+            y: (src.clientY - rect.top)  * scaleY,
+        };
+    }
+    const canvas = document.getElementById('signCanvas');
+    canvas.addEventListener('mousedown', e => {
+        if (!signPadActive) return;
+        signPadDrawing = true;
+        const p = getSignPos(canvas, e);
+        signPadCtx.beginPath(); signPadCtx.moveTo(p.x, p.y);
+    });
+    canvas.addEventListener('mousemove', e => {
+        if (!signPadActive || !signPadDrawing) return;
+        const p = getSignPos(canvas, e);
+        signPadCtx.lineTo(p.x, p.y); signPadCtx.stroke();
+    });
+    canvas.addEventListener('mouseup',    () => { signPadDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { signPadDrawing = false; });
+    canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (!signPadActive) return;
+        signPadDrawing = true;
+        const p = getSignPos(canvas, e);
+        signPadCtx.beginPath(); signPadCtx.moveTo(p.x, p.y);
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (!signPadActive || !signPadDrawing) return;
+        const p = getSignPos(canvas, e);
+        signPadCtx.lineTo(p.x, p.y); signPadCtx.stroke();
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { signPadDrawing = false; });
+})();
+
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+</script>
+</body>
+</html>
